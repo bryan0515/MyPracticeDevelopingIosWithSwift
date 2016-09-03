@@ -12,34 +12,45 @@ class ViewController: UIViewController {
     
     @IBOutlet weak var display: UILabel!
     
+    @IBOutlet weak var stackDisplay: UILabel!
+    
     var userIsInTheMiddleOfTypingANumber = false
     
+    var hasDecimalPoint = false
+    
+    var brian = CalculatorBrian()
+    
     @IBAction func operate(sender: UIButton) {
-        let operation = sender.currentTitle!
         if userIsInTheMiddleOfTypingANumber {
             enter()
         }
-        switch operation {
-        case "×": performOperation() { $0 * $1 }
-        case "÷": performOperation() { $1 / $0 }
-        case "+": performOperation() { $0 + $1 }
-        case "−": performOperation() { $1 - $0 }
-        case "√": performOperation() { sqrt($0) }
-        default: break
+        if let operation = sender.currentTitle {
+            if let result = brian.performOperation(operation) {
+                displayValue = result
+            } else {
+                displayValue = 0
+            }
         }
+        stackDisplay.text = brian.getStack()
     }
     
-    func performOperation(operation: (Double, Double) -> Double) {
-        if operandStack.count >= 2 {
-            displayValue = operation(operandStack.removeLast(), operandStack.removeLast())
-            enter()
-        }
+    @IBAction func clear(sender: UIButton) {
+        endUserTyping()
+        brian.removeAllOpStack()
+        displayValue = 0
+        stackDisplay.text = brian.getStack()
     }
     
-    func performOperation(operation: Double -> Double) {
-        if operandStack.count >= 1 {
-            displayValue = operation(operandStack.removeLast())
-            enter()
+    @IBAction func appendDecimalPoint(sender: UIButton) {
+        let digit = sender.currentTitle!
+        if !hasDecimalPoint {
+            if userIsInTheMiddleOfTypingANumber {
+                display.text = display.text! + digit
+            } else {
+                display.text = "0."
+                userIsInTheMiddleOfTypingANumber = true
+            }
+            hasDecimalPoint = true
         }
     }
     
@@ -53,12 +64,19 @@ class ViewController: UIViewController {
         }
     }
     
-    var operandStack = Array<Double>()
-    
     @IBAction func enter() {
+        endUserTyping()
+        if let result = brian.pushOperand(displayValue) {
+            displayValue = result
+        } else {
+            displayValue = 0
+        }
+        stackDisplay.text = brian.getStack()
+    }
+    
+    func endUserTyping() {
         userIsInTheMiddleOfTypingANumber = false
-        operandStack.append(displayValue)
-        println("operandStack = \(operandStack)")
+        hasDecimalPoint = false
     }
     
     var displayValue: Double {
@@ -67,7 +85,7 @@ class ViewController: UIViewController {
         }
         set {
             display.text = "\(newValue)"
-            userIsInTheMiddleOfTypingANumber = false
+            endUserTyping()
         }
     }
 }
